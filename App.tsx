@@ -14,7 +14,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
-import * as CallDetector from '@softtee/react-native-call-detector';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 
 const COLORS = {
@@ -82,8 +81,6 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [displayDb, setDisplayDb] = useState(0);
   const [isWarning, setIsWarning] = useState(false);
-  const [isActiveCall, setIsActiveCall] = useState(false);
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   // Animation & Throttling
   const animatedOuterScale = useRef(new Animated.Value(1)).current;
@@ -107,30 +104,14 @@ export default function App() {
           const permissionsToRequest = [
             PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
             PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
-            PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
-            PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS,
           ];
           if (Platform.Version >= 33) {
             permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
           }
-          const results = await PermissionsAndroid.requestMultiple(permissionsToRequest);
-          
-          // Check if core phone state permissions were granted
-          if (
-            results[PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE] === 'granted'
-          ) {
-            setPermissionsGranted(true);
-          } else {
-            // Even if denied, we set true so the app loads, but the CallDetector might fail or do nothing
-            // Actually, to prevent crashes, only set to true if granted.
-            setPermissionsGranted(true); 
-          }
+          await PermissionsAndroid.requestMultiple(permissionsToRequest);
         } catch (err) {
           console.warn('Failed to request permissions', err);
-          setPermissionsGranted(true);
         }
-      } else {
-        setPermissionsGranted(true);
       }
     };
 
@@ -156,49 +137,13 @@ export default function App() {
     loadState();
   }, []);
 
-  // Telephony Detection Engine
-  useEffect(() => {
-    if (!permissionsGranted) return;
-
-    let unsubscribe: (() => void) | undefined;
-    
-    const setupDetector = async () => {
-      try {
-        CallDetector.start();
-        unsubscribe = CallDetector.onCallStateChange(({ state }) => {
-        if (state === 'Idle' || state === 'Unknown') {
-           console.log("SHUSH_LOG: Call Ended");
-           setIsActiveCall(false);
-        } else if (state === 'Incoming' || state === 'Outgoing' || state === 'Offhook') {
-           console.log("SHUSH_LOG: Call Started");
-           setIsActiveCall(true);
-        }
-      });
-      } catch (e) {
-        console.log("CallDetector start failed:", e);
-      }
-    };
-
-    setupDetector();
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      try {
-        CallDetector.stop();
-      } catch (e) {}
-    };
-  }, [permissionsGranted]);
-
   // Foreground Service & Audio Engine Orchestration
   useEffect(() => {
     let recording: Audio.Recording | null = null;
     let isMounted = true;
     
-    // Core Logic: Both explicitly ON, AND phone Call is Active.
-    // NOTE: for testing without a real call, you could bypass isActiveCall here.
-    const shouldMonitor = isMonitoringEnabled && isActiveCall;
+    // Core Logic: Simply map directly to the User's Master Toggle.
+    const shouldMonitor = isMonitoringEnabled;
 
     const startRecordingAndService = async () => {
       try {
@@ -334,7 +279,7 @@ export default function App() {
       isMounted = false;
       stopRecordingAndService();
     };
-  }, [isMonitoringEnabled, isActiveCall, animatedOuterScale, animatedInnerScale]);
+  }, [isMonitoringEnabled, animatedOuterScale, animatedInnerScale]);
 
   const handleToggle = async (value: boolean) => {
     setIsMonitoringEnabled(value);
@@ -369,11 +314,6 @@ export default function App() {
             <Text style={[styles.dbLabelText, isWarning && styles.warningText]}>dB</Text>
           </View>
         </View>
-
-        {/* Status Text (Debug Helper) */}
-        {!isActiveCall && isMonitoringEnabled && (
-          <Text style={styles.statusHelperText}>Waiting for a phone call to start monitoring...</Text>
-        )}
 
         {/* Monitor Volume Card */}
         <View style={styles.card}>
