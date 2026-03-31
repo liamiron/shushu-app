@@ -187,8 +187,8 @@ export default function App() {
           ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
           android: {
             ...Audio.RecordingOptionsPresets.HIGH_QUALITY.android,
-            // 7 = MediaRecorder.AudioSource.VOICE_COMMUNICATION
-            audioSource: 7,
+            // 1 = MediaRecorder.AudioSource.MIC, allows physical recording bypass via Accessibility Service
+            audioSource: 1,
           }
         };
 
