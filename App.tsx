@@ -16,7 +16,7 @@ import {
 try {
   I18nManager.allowRTL(false);
   I18nManager.forceRTL(false);
-} catch (e) {}
+} catch (e) { }
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
@@ -149,7 +149,7 @@ export default function App() {
   useEffect(() => {
     let recording: Audio.Recording | null = null;
     let isMounted = true;
-    
+
     // Core Logic: Simply map directly to the User's Master Toggle.
     const shouldMonitor = isMonitoringEnabled;
 
@@ -161,7 +161,7 @@ export default function App() {
           name: 'SHUSH Background Monitoring',
           importance: AndroidImportance.LOW, // Avoids sound/popups on Android 8+
         });
-        
+
         await notifee.displayNotification({
           id: 'shush_monitoring_notification',
           title: 'SHUSH',
@@ -188,7 +188,7 @@ export default function App() {
           android: {
             ...Audio.RecordingOptionsPresets.HIGH_QUALITY.android,
             // 7 = MediaRecorder.AudioSource.VOICE_COMMUNICATION
-            audioSource: 7, 
+            audioSource: 7,
           }
         };
 
@@ -201,7 +201,7 @@ export default function App() {
 
               // Throttle text
               const now = Date.now();
-              const UPDATE_INTERVAL_MS = 300; 
+              const UPDATE_INTERVAL_MS = 300;
               if (now - lastUpdateRef.current > UPDATE_INTERVAL_MS) {
                 setDisplayDb(Math.round(linearVolume160));
                 lastUpdateRef.current = now;
@@ -209,7 +209,7 @@ export default function App() {
 
               // Warning & Haptics Logic
               const isOverThreshold = linearVolume160 > volumeThresholdRef.current;
-              
+
               if (isOverThreshold !== isWarningRef.current) {
                 setIsWarning(isOverThreshold);
                 isWarningRef.current = isOverThreshold;
@@ -258,14 +258,14 @@ export default function App() {
       if (recording) {
         try {
           await recording.stopAndUnloadAsync();
-        } catch (err) {}
+        } catch (err) { }
         recording = null;
       }
-      
+
       // 2. Kill Foreground Service & Notification
       try {
         await notifee.stopForegroundService();
-      } catch (e) {}
+      } catch (e) { }
 
       // UI reset
       setDisplayDb(0);
@@ -317,7 +317,7 @@ export default function App() {
           <View style={styles.circleContainer}>
             <Animated.View style={[styles.outerRing, { transform: [{ scale: animatedOuterScale }] }]} />
             <Animated.View style={[styles.innerRing, { transform: [{ scale: animatedInnerScale }] }]} />
-            
+
             <Text style={[styles.dbNumberText, isWarning && styles.warningText]}>{displayDb}</Text>
             <Text style={[styles.dbLabelText, isWarning && styles.warningText]}>dB</Text>
           </View>
@@ -329,7 +329,7 @@ export default function App() {
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={styles.cardTitle}>Monitor Volume</Text>
               <Text style={styles.cardDescription}>
-                Automatically adjust output{'\n'}levels based on environmental{'\n'}noise.
+                Turn on in order to track high-volume speaking.
               </Text>
             </View>
           </View>
@@ -339,14 +339,14 @@ export default function App() {
         </View>
 
         {/* Threshold Card */}
-        <View 
-          style={[styles.card, !isMonitoringEnabled && styles.disabledCard]} 
+        <View
+          style={[styles.card, !isMonitoringEnabled && styles.disabledCard]}
           pointerEvents={isMonitoringEnabled ? 'auto' : 'none'}
         >
           <View style={styles.cardHeaderRow}>
             <View>
               <Text style={styles.cardTitle}>Threshold</Text>
-              <Text style={styles.cardSubtitle}>SILENCE TRIGGER</Text>
+              <Text style={styles.cardSubtitle}>VOLUME TRIGGER</Text>
             </View>
             <Text style={styles.percentageText}>{volumeThreshold} dB</Text>
           </View>
