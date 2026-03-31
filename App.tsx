@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
-import CallDetectorManager from 'react-native-call-detection';
+import * as CallDetector from '@softtee/react-native-call-detector';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 
 const COLORS = {
@@ -106,6 +106,8 @@ export default function App() {
           const permissionsToRequest = [
             PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
             PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+            PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
+            PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS,
           ];
           if (Platform.Version >= 33) {
             permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -141,30 +143,28 @@ export default function App() {
 
   // Telephony Detection Engine
   useEffect(() => {
-    let callDetector: any = null;
+    let unsubscribe: (() => void) | undefined;
     
-    callDetector = new CallDetectorManager(
-      (event: string) => {
-        if (event === 'Disconnected' || event === 'Missed') {
+    const setupDetector = async () => {
+      CallDetector.start();
+      unsubscribe = CallDetector.onCallStateChange(({ state }) => {
+        if (state === 'Idle' || state === 'Unknown') {
            console.log("SHUSH_LOG: Call Ended");
            setIsActiveCall(false);
-        } else if (event === 'Connected' || event === 'Offhook' || event === 'Incoming') {
+        } else if (state === 'Incoming' || state === 'Outgoing' || state === 'Offhook') {
            console.log("SHUSH_LOG: Call Started");
            setIsActiveCall(true);
         }
-      },
-      false, // write permissions disabled
-      () => {},
-      {
-        title: 'Phone State Permission',
-        message: 'SHUSH needs access to your phone state to monitor active calls.'
-      }
-    );
+      });
+    };
+
+    setupDetector();
     
     return () => {
-      if (callDetector) {
-        callDetector.dispose();
+      if (unsubscribe) {
+        unsubscribe();
       }
+      CallDetector.stop();
     };
   }, []);
 
