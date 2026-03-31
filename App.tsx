@@ -9,7 +9,8 @@ import {
   SafeAreaView,
   Pressable,
   StatusBar,
-  I18nManager
+  I18nManager,
+  Vibration
 } from 'react-native';
 
 // Mathematically lock the app to Left-To-Right (LTR) specifically to prevent UI inversion on RTL devices.
@@ -218,7 +219,8 @@ export default function App() {
               if (isOverThreshold) {
                 const nowTimestamp = Date.now();
                 if (nowTimestamp - lastHapticTimeRef.current > 3000) {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  // Specific pattern: 3 short bursts. Array: [delay, burst1, gap, burst2, gap, burst3]
+                  Vibration.vibrate([0, 120, 150, 120, 150, 120]);
                   lastHapticTimeRef.current = nowTimestamp;
                 }
               }
