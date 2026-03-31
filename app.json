@@ -33,8 +33,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio",
-      "@notifee/react-native"
+      "expo-audio"
     ]
   }
 }
