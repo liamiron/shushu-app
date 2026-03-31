@@ -8,8 +8,16 @@ import {
   Platform,
   SafeAreaView,
   Pressable,
-  StatusBar
+  StatusBar,
+  I18nManager
 } from 'react-native';
+
+// Mathematically lock the app to Left-To-Right (LTR) specifically to prevent UI inversion on RTL devices.
+try {
+  I18nManager.allowRTL(false);
+  I18nManager.forceRTL(false);
+} catch (e) {}
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
