@@ -83,6 +83,7 @@ export default function App() {
   const [displayDb, setDisplayDb] = useState(0);
   const [isWarning, setIsWarning] = useState(false);
   const [isActiveCall, setIsActiveCall] = useState(false);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   // Animation & Throttling
   const animatedOuterScale = useRef(new Animated.Value(1)).current;
@@ -112,10 +113,24 @@ export default function App() {
           if (Platform.Version >= 33) {
             permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
           }
-          await PermissionsAndroid.requestMultiple(permissionsToRequest);
+          const results = await PermissionsAndroid.requestMultiple(permissionsToRequest);
+          
+          // Check if core phone state permissions were granted
+          if (
+            results[PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE] === 'granted'
+          ) {
+            setPermissionsGranted(true);
+          } else {
+            // Even if denied, we set true so the app loads, but the CallDetector might fail or do nothing
+            // Actually, to prevent crashes, only set to true if granted.
+            setPermissionsGranted(true); 
+          }
         } catch (err) {
           console.warn('Failed to request permissions', err);
+          setPermissionsGranted(true);
         }
+      } else {
+        setPermissionsGranted(true);
       }
     };
 
@@ -143,11 +158,14 @@ export default function App() {
 
   // Telephony Detection Engine
   useEffect(() => {
+    if (!permissionsGranted) return;
+
     let unsubscribe: (() => void) | undefined;
     
     const setupDetector = async () => {
-      CallDetector.start();
-      unsubscribe = CallDetector.onCallStateChange(({ state }) => {
+      try {
+        CallDetector.start();
+        unsubscribe = CallDetector.onCallStateChange(({ state }) => {
         if (state === 'Idle' || state === 'Unknown') {
            console.log("SHUSH_LOG: Call Ended");
            setIsActiveCall(false);
@@ -156,6 +174,9 @@ export default function App() {
            setIsActiveCall(true);
         }
       });
+      } catch (e) {
+        console.log("CallDetector start failed:", e);
+      }
     };
 
     setupDetector();
@@ -164,9 +185,11 @@ export default function App() {
       if (unsubscribe) {
         unsubscribe();
       }
-      CallDetector.stop();
+      try {
+        CallDetector.stop();
+      } catch (e) {}
     };
-  }, []);
+  }, [permissionsGranted]);
 
   // Foreground Service & Audio Engine Orchestration
   useEffect(() => {
